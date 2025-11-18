@@ -169,6 +169,30 @@ def list_providers(city: Optional[str] = Query(None, description="City filter, c
     return results
 
 
+@app.get("/api/providers/{provider_id}", response_model=ProviderPublic)
+def get_provider(provider_id: str):
+    from database import db
+    try:
+        oid = ObjectId(provider_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid provider id")
+    doc = db["provider"].find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Provider not found")
+    d = to_str_id(doc)
+    return ProviderPublic(**{
+        "id": d.get("id"),
+        "display_name": d.get("display_name"),
+        "city": d.get("city"),
+        "description": d.get("description"),
+        "price_per_page": float(d.get("price_per_page", 0)),
+        "color_supported": bool(d.get("color_supported", True)),
+        "duplex": bool(d.get("duplex", True)),
+        "rating": float(d.get("rating", 0.0)),
+        "reviews_count": int(d.get("reviews_count", 0)),
+    })
+
+
 @app.post("/api/reviews", response_model=dict)
 def create_review(review: ReviewCreate):
     from database import db, create_document
